@@ -495,7 +495,7 @@ public final class IsoMesageExamples {
 				+ "<.hex>1401</.hex>0" + "<.hex>8606060400100728</.hex>"
 				+ "06005" + "<.hex>0203</.hex>eng" + "07051"
 				+ "<.hex>090B</.hex>40020064037" + "<.hex>0802</.hex>01"
-				+ "<.hex>0A20</.hex>hd ÒZáM~.}.ä%.Æá°7.ðS÷àóî.ï¿Ü.Õ."));
+				+ "<.hex>0A20</.hex>hd000000111111222222333333444455"));
 		isoMsg.addDataElement(
 				118,
 				DEFactory
@@ -563,7 +563,7 @@ public final class IsoMesageExamples {
 				+ "<.hex>0604</.hex>2711" + "<.hex>0702</.hex>01"
 				+ "<.hex>0801</.hex>A" + "06005" + "<.hex>0203</.hex>eng"
 				+ "07045" + "<.hex>0917</.hex>AYBFRUreV9e3L7HkPrOmPfA"
-				+ "<.hex>0802</.hex>01" + "<.hex>0A0E</.hex>Á_øÈ` _/Ñ%.Ä?_"));
+				+ "<.hex>0802</.hex>01" + "<.hex>0A0E</.hex>12345678901234"));
 		isoMsg.addDataElement(116, DEFactory.generateDataElement(116,
 				"102510900000084063368     "));
 		isoMsg.addDataElement(
