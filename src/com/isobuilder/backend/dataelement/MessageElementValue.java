@@ -87,14 +87,14 @@ public final class MessageElementValue {
 			while (matcher.find()) {
 
 				// add string extended after HEX DATA
-				extendedValue = extend(matcher.group(AFT_HEX_GROUP))
+				extendedValue = extend(matcher.group(AFT_HEX_GROUP).getBytes())
 						+ extendedValue;
 
 				// add HEX DATA string
 				extendedValue = matcher.group(EFF_HEX_GROUP) + extendedValue;
 
 				// save string extended before HEX DATA
-				befHexString = extend(matcher.group(BEF_HEX_GROUP));
+				befHexString = extend(matcher.group(BEF_HEX_GROUP).getBytes());
 
 				// apply regex to string before HEX DATA
 				matcher = pattern.matcher(matcher.group(BEF_HEX_GROUP));
@@ -104,7 +104,7 @@ public final class MessageElementValue {
 			extendedValue = befHexString + extendedValue;
 
 		} else {
-			extendedValue = extend(value);
+			extendedValue = extend(value.getBytes());
 		}
 
 		return extendedValue;
@@ -133,16 +133,14 @@ public final class MessageElementValue {
 
 				// add string extended after HEX DATA
 				String origString = matcher.group(AFT_HEX_GROUP);
-				String converted = new String(origString.getBytes(charsetName));
-				extendedValue = extend(converted) + extendedValue;
+				extendedValue = extend(origString.getBytes(charsetName)) + extendedValue;
 
 				// add HEX DATA string
 				extendedValue = matcher.group(EFF_HEX_GROUP) + extendedValue;
 
 				// save string extended before HEX DATA
 				origString = matcher.group(BEF_HEX_GROUP);
-				converted = new String(origString.getBytes(charsetName));
-				befHexString = extend(converted);
+				befHexString = extend(origString.getBytes(charsetName));
 
 				// apply regex to string before HEX DATA
 				matcher = pattern.matcher(matcher.group(BEF_HEX_GROUP));
@@ -152,8 +150,7 @@ public final class MessageElementValue {
 			extendedValue = befHexString + extendedValue;
 
 		} else {
-			String converted = new String(value.getBytes(charsetName));
-			extendedValue = extend(converted);
+			extendedValue = extend(value.getBytes(charsetName));
 		}
 
 		return extendedValue;
@@ -178,27 +175,12 @@ public final class MessageElementValue {
 	 * @param originalValue
 	 * @return
 	 */
-	private static String extend(String originalValue) {
-		byte[] byteSequence = originalValue.getBytes();
+	private static String extend(byte[] byteSequence) {
 
 		String extended = "";
 
 		for (int i = 0; i < byteSequence.length; i++) {
-
-			String byteBinaryString = Integer
-					.toBinaryString(byteSequence[i] & 0xFF);
-
-			while (byteBinaryString.length() < 8) {
-				byteBinaryString = "0" + byteBinaryString;
-			}
-
-			Long byteLongValue = Long.parseLong(byteBinaryString, 2);
-			String byteHexValue = Long.toHexString(byteLongValue).toUpperCase();
-			
-			while (byteHexValue.length() < 2) {
-				byteHexValue = "0" + byteHexValue;
-
-			}
+			String byteHexValue = Integer.toHexString(Byte.toUnsignedInt(byteSequence[i])).toUpperCase();
 
 			extended += byteHexValue;
 		}
