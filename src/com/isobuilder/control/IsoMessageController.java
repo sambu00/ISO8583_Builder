@@ -546,7 +546,8 @@ public class IsoMessageController {
 				Point point = mouseEvent.getPoint();
 				int row = table.rowAtPoint(point);
 
-				if (mouseEvent.getClickCount() == 1
+				if (mouseEvent.getClickCount() == 1 
+						&& mouseEvent.getButton() == 1
 						&& table.getSelectedRow() != -1) {
 					dataElementPanel.resetInputFields();
 					String deNumString = (String) table.getModel().getValueAt(
@@ -556,7 +557,8 @@ public class IsoMessageController {
 					dataElementPanel.setDEFields(deNumString, deValueString);
 				}
 
-				if (mouseEvent.getClickCount() == 2
+				if (mouseEvent.getClickCount() == 2 
+						&& mouseEvent.getButton() == 1
 						&& table.getSelectedRow() != -1) {
 
 					int deNum = Integer.parseInt((String) table.getModel()
@@ -660,9 +662,9 @@ public class IsoMessageController {
 					JOptionPane.showMessageDialog(isoBuilderFrame,
 							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
 				}
-				
+
 				String newDeValue = isoMsg.getDataElement(deNum).getPlainValue();
-				
+
 				dataElementPanel.resetInputFields();
 				dataElementPanel.setDEFields(String.format("%03d", deNum), newDeValue);
 
@@ -682,6 +684,9 @@ public class IsoMessageController {
 					appendValueToDE(deNum, deValue);
 					
 					
+					
+
+					
 				} catch (MaximumLengthExceededException | PatternException
 						| FixedLengthNotHonoredException | ZeroLengthException e) {
 					JOptionPane.showMessageDialog(isoBuilderFrame,
@@ -694,7 +699,7 @@ public class IsoMessageController {
 				}
 
 				String newDeValue = isoMsg.getDataElement(deNum).getPlainValue();
-				
+
 				dataElementPanel.resetInputFields();
 				dataElementPanel.setDEFields(String.format("%03d", deNum), newDeValue);
 
