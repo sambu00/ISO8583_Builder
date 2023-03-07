@@ -538,88 +538,8 @@ public class IsoMessageController {
 	 * Create and set the listeners for the components in IsoTablePanel
 	 */
 	private void isoTablePanelListeners() {
-		isoTablePanel.setTableListener(new MouseAdapter() {
-
-			@Override
-			public void mouseClicked(MouseEvent mouseEvent) {
-				JTable table = (JTable) mouseEvent.getSource();
-				Point point = mouseEvent.getPoint();
-				int row = table.rowAtPoint(point);
-
-				if (mouseEvent.getClickCount() == 1 
-						&& mouseEvent.getButton() == 1
-						&& table.getSelectedRow() != -1) {
-					dataElementPanel.resetInputFields();
-					String deNumString = (String) table.getModel().getValueAt(
-							row, 0);
-					String deValueString = (String) table.getModel()
-							.getValueAt(row, 1);
-					dataElementPanel.setDEFields(deNumString, deValueString);
-				}
-
-				if (mouseEvent.getClickCount() == 2 
-						&& mouseEvent.getButton() == 1
-						&& table.getSelectedRow() != -1) {
-
-					int deNum = Integer.parseInt((String) table.getModel()
-							.getValueAt(row, 0));
-
-					DataElement selectedDE = isoMsg.getDataElement(deNum);
-					// new DataElementControl(isoMsg, selectedDE);
-					DataElementFrame def = new DataElementFrame(selectedDE);
-
-					def.setRemoveListener(new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent arg0) {
-							// TODO Auto-generated method stub
-							try {
-								removeDE(selectedDE.getPosition());
-							} catch (ReservedDataElementException
-									| MaximumLengthExceededException
-									| PatternException
-									| InvalidDataElementException
-									| FixedLengthNotHonoredException
-									| ZeroLengthException e) {
-								// TODO Auto-generated catch block
-								JOptionPane.showMessageDialog(isoBuilderFrame,
-										e.getMessage(), "ERROR",
-										JOptionPane.ERROR_MESSAGE);
-
-							}
-						}
-
-					});
-
-					def.setUpdateValueListener(new ActionListener() {
-
-						public void actionPerformed(ActionEvent arg0) {
-							String deValue = def.getDEValue();
-							int dePosition = selectedDE.getPosition();
-
-							try {
-								DataElement newDE = DEFactory
-										.generateDataElement(dePosition,
-												deValue);
-								addDEtoIsoMessage(dePosition, newDE);
-							} catch (InvalidDataElementException
-									| MaximumLengthExceededException
-									| PatternException
-									| FixedLengthNotHonoredException
-									| ReservedDataElementException
-									| ZeroLengthException e) {
-								JOptionPane.showMessageDialog(isoBuilderFrame,
-										e.getMessage(), "ERROR",
-										JOptionPane.ERROR_MESSAGE);
-							}
-						}
-
-					});
-
-				}
-
-			}
-		});
+		isoTablePanel.setTableListener(new IsoTableMouseAdapter(this));
+		isoTablePanel.setRemoveSelectedListener(new IsoTablePopupMenuListener(this));
 	}
 
 	/**
@@ -867,4 +787,85 @@ public class IsoMessageController {
 
 		return extension;
 	}
+
+	protected void openDataElementFrame(int deNum) {
+		DataElement selectedDE = isoMsg.getDataElement(deNum);
+		// new DataElementControl(isoMsg, selectedDE);
+		DataElementFrame def = new DataElementFrame(selectedDE);
+
+		def.setRemoveListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				try {
+					removeDE(selectedDE.getPosition());
+				} catch (ReservedDataElementException
+						| MaximumLengthExceededException
+						| PatternException
+						| InvalidDataElementException
+						| FixedLengthNotHonoredException
+						| ZeroLengthException e) {
+					// TODO Auto-generated catch block
+					JOptionPane.showMessageDialog(isoBuilderFrame,
+							e.getMessage(), "ERROR",
+							JOptionPane.ERROR_MESSAGE);
+
+				}
+			}
+
+		});
+
+		def.setUpdateValueListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent arg0) {
+				String deValue = def.getDEValue();
+				int dePosition = selectedDE.getPosition();
+
+				try {
+					DataElement newDE = DEFactory
+							.generateDataElement(dePosition,
+									deValue);
+					addDEtoIsoMessage(dePosition, newDE);
+				} catch (InvalidDataElementException
+						| MaximumLengthExceededException
+						| PatternException
+						| FixedLengthNotHonoredException
+						| ReservedDataElementException
+						| ZeroLengthException e) {
+					JOptionPane.showMessageDialog(isoBuilderFrame,
+							e.getMessage(), "ERROR",
+							JOptionPane.ERROR_MESSAGE);
+				}
+			}
+
+		});
+
+	}
+
+	public BitmapPanel getBitmapPanel() {
+		return bitmapPanel;
+	}
+
+	public DataElementPanel getDataElementPanel() {
+		return dataElementPanel;
+	}
+
+	public MTIPanel getMtiPanel() {
+		return mtiPanel;
+	}
+
+	public IsoTablePanel getIsoTablePanel() {
+		return isoTablePanel;
+	}
+
+	public ActionsPanel getActionsPanel() {
+		return actionsPanel;
+	}
+
+	public IsoBuilderFrame getIsoBuilderFrame() {
+		return isoBuilderFrame;
+	}
+
+	
 }
