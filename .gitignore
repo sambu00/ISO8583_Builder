@@ -1,2 +1,5 @@
 # Compiled class file
 *.class
+
+# script per compilazione e build
+utilities/*

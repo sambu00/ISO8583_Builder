@@ -1,11 +1,8 @@
 package com.isobuilder.control;
 
 import java.awt.Color;
-import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -19,7 +16,6 @@ import java.util.regex.Pattern;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -51,8 +47,6 @@ import com.isobuilder.view.MTIPanel;
  *
  */
 public class IsoMessageController {
-
-	private final String FILE_EXTENSION = "imf";
 
 	// model
 	private IsoMessage isoMsg;
@@ -222,7 +216,7 @@ public class IsoMessageController {
 	/**
 	 * Method to initialize the principal frame
 	 */
-	private void initIsoBuilderFrame() {
+	protected void initIsoBuilderFrame() {
 		tableModel.loadTableModel(isoMsg.getDeMap());
 		mtiPanel.setMtiLabelText(isoMsg.getMessageType());
 	}
@@ -231,7 +225,7 @@ public class IsoMessageController {
 	 * Method to update the Bitmap panel according to the data elements included
 	 * in the ISO Message
 	 */
-	private void updateBitmapPanel() {
+	protected void updateBitmapPanel() {
 		String bits1 = isoMsg.getBitmap1().toString();
 		String bits2 = isoMsg.getBitmap2().toString();
 
@@ -261,473 +255,72 @@ public class IsoMessageController {
 		/*
 		 * MTI PANEL LISTENERS
 		 */
-		mtiPanelListeners();
+		mtiPanel.setMtiButtonListener(new MtiButtonListener(this));
 
 		/*
 		 * ISO TABLE PANEL LISTENERS
 		 */
-		isoTablePanelListeners();
+		isoTablePanel.setTableListener(new IsoTableMouseAdapter(this));
+		isoTablePanel.setRemoveSelectedListener(new IsoTablePopupMenuListener(this));
+
 
 		/*
 		 * BITMAP PANEL LISTENERS
 		 */
-		bitmapPanelListeners();
+		// bitmapPanel.setListener(new RFU(this)) ... RFU
+
 
 		/*
 		 * DATA ELEMENT PANEL LISTENERS
 		 */
-		dataElementPanelListeners();
+		dataElementPanel.setAddDEButtonListener(new AddDEButtonListener(this));
+		dataElementPanel.setAppendDEButtonListener(new AppendDEButtonListener(this));
+		dataElementPanel.setDeleteDEButtonListener(new DeleteDEButtonListener(this));
+
 
 		/*
 		 * ACTIONS PANEL LISTENERS
 		 */
-		actionsPanelListeners();
+		actionsPanel.setMcExampleButtonListener(new McExampleListener(this));
+		actionsPanel.setVisaExampleButtonListener(new VisaExampleListener(this));
+		actionsPanel.setKoreButtonListener(new KoreButtonListener(this));
 
 	}
 
 	/**
 	 * Create and set the listeners for the components in the menu
+	 * @throws ZeroLengthException
+	 * @throws FixedLengthNotHonoredException
+	 * @throws InvalidDataElementException
+	 * @throws ReservedDataElementException
+	 * @throws PatternException
+	 * @throws MaximumLengthExceededException
+	 * @throws InvalidMessageTypeException
 	 */
 	private void menuListeners() {
-		isoBuilderFrame.setNewIsoMsgMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				isoMsg = new IsoMessage();
+		isoBuilderFrame.setNewIsoMsgMenuItemListener(MenuListeners.newIsoMsg(this));
+		isoBuilderFrame.setExportMenuItemListener(MenuListeners.exportMsg(this));
+		isoBuilderFrame.setImportMenuItemListener(MenuListeners.importMsg(this));
+		
+		try {
+			isoBuilderFrame.setMcSampleMenuItemListener(MenuListeners.msgSample(this, IsoMesageExamples.genMastercardExample()));
+			isoBuilderFrame.setVisaSampleMenuItemListener(MenuListeners.msgSample(this, IsoMesageExamples.genVisaExample()));
+
+			isoBuilderFrame.setTarMDESSampleMenuItemListener(MenuListeners.msgSample(this, IsoMesageExamples.genMdesTARExample()));
+			isoBuilderFrame.setTcnMDESSampleMenuItemListener(MenuListeners.msgSample(this, IsoMesageExamples.genMdesTCNExample()));
+			isoBuilderFrame.setPurchaseMDESSampleMenuItem(MenuListeners.msgSample(this, IsoMesageExamples.genMdesPurchaseExample()));
+	
+			isoBuilderFrame.setTarVTSSampleMenuItemListener(MenuListeners.msgSample(this, IsoMesageExamples.genVtsTARExample()));
+			isoBuilderFrame.setTcnVTSSSampleMenuItemListener(MenuListeners.msgSample(this, IsoMesageExamples.genVtsTCNExample()));
+			isoBuilderFrame.setPurchaseVTSSampleMenuItem(MenuListeners.msgSample(this, IsoMesageExamples.genVtsPurchaseExample()));
+	
+		} catch (InvalidMessageTypeException | MaximumLengthExceededException | PatternException
+				| ReservedDataElementException | InvalidDataElementException | FixedLengthNotHonoredException
+				| ZeroLengthException e) {
+			JOptionPane.showMessageDialog(isoBuilderFrame,
+			e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
+		}
 
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-
-		isoBuilderFrame.setExportMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				JFileChooser chooser = new JFileChooser();
-				FileNameExtensionFilter filter = new FileNameExtensionFilter(
-						"ISO Message File (*.imf)", FILE_EXTENSION);
-				chooser.setFileFilter(filter);
-				chooser.setAcceptAllFileFilterUsed(false);
-				int chooserReturnValue = chooser
-						.showSaveDialog(isoBuilderFrame);
-
-				if (chooserReturnValue == JFileChooser.APPROVE_OPTION) {
-					File outputFile = chooser.getSelectedFile();
-
-					if (getExtension(outputFile) != FILE_EXTENSION) {
-						String newName = outputFile.toString() + "."
-								+ FILE_EXTENSION;
-						outputFile = new File(newName);
-					}
-
-					try {
-						writeISoMsgToFile(outputFile);
-					} catch (IOException e) {
-						JOptionPane.showMessageDialog(isoBuilderFrame,
-								e.getMessage(), "ERROR",
-								JOptionPane.ERROR_MESSAGE);
-					}
-				}
-			}
-		});
-
-		isoBuilderFrame.setImportMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				JFileChooser chooser = new JFileChooser();
-				FileNameExtensionFilter filter = new FileNameExtensionFilter(
-						"ISO Message File (*.imf)", FILE_EXTENSION);
-				chooser.setFileFilter(filter);
-				chooser.setAcceptAllFileFilterUsed(false);
-
-				int chooserReturnValue = chooser
-						.showOpenDialog(isoBuilderFrame);
-
-				if (chooserReturnValue == JFileChooser.APPROVE_OPTION) {
-					File importFile = chooser.getSelectedFile();
-
-					try {
-						isoMsg = readIsoMsgFromFile(importFile);
-
-					} catch (ClassNotFoundException | IOException e) {
-						JOptionPane.showMessageDialog(isoBuilderFrame,
-								e.getMessage(), "ERROR",
-								JOptionPane.ERROR_MESSAGE);
-					}
-					initIsoBuilderFrame();
-					updateBitmapPanel();
-					tableModel.fireTableDataChanged();
-				}
-			}
-		});
-
-		isoBuilderFrame.setMcSampleMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genMastercardExample();
-				} catch (InvalidMessageTypeException
-						| MaximumLengthExceededException | PatternException
-						| ReservedDataElementException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-
-		isoBuilderFrame.setVisaSampleMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genVisaExample();
-				} catch (InvalidMessageTypeException
-						| MaximumLengthExceededException | PatternException
-						| ReservedDataElementException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-
-		});
-
-		isoBuilderFrame.setTarMDESSampleMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genMdesTARExample();
-				} catch (InvalidMessageTypeException
-						| MaximumLengthExceededException | PatternException
-						| ReservedDataElementException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-
-		isoBuilderFrame.setTcnMDESSampleMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genMdesTCNExample();
-				} catch (InvalidMessageTypeException
-						| ReservedDataElementException
-						| MaximumLengthExceededException | PatternException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-
-		isoBuilderFrame.setPurchaseMDESSampleMenuItem(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genMdesPurchaseExample();
-				} catch (InvalidMessageTypeException
-						| ReservedDataElementException
-						| MaximumLengthExceededException | PatternException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-
-		isoBuilderFrame.setTarVTSSampleMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genVtsTARExample();
-				} catch (InvalidMessageTypeException
-						| MaximumLengthExceededException | PatternException
-						| ReservedDataElementException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-
-		isoBuilderFrame.setTcnVTSSSampleMenuItemListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genVtsTCNExample();
-				} catch (InvalidMessageTypeException
-						| ReservedDataElementException
-						| MaximumLengthExceededException | PatternException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-
-		isoBuilderFrame.setPurchaseVTSSampleMenuItem(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genVtsPurchaseExample();
-				} catch (InvalidMessageTypeException
-						| ReservedDataElementException
-						| MaximumLengthExceededException | PatternException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-		});
-	}
-
-	/**
-	 * Create and set the listeners for the components in MTIPanel
-	 */
-	private void mtiPanelListeners() {
-		mtiPanel.setMtiButtonListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					setIsoMessageMTI(mtiPanel.getMtiString());
-				} catch (InvalidMessageTypeException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				mtiPanel.setMtiLabelText(isoMsg.getMessageType());
-			}
-
-		});
-
-	}
-
-	/**
-	 * Create and set the listeners for the components in IsoTablePanel
-	 */
-	private void isoTablePanelListeners() {
-		isoTablePanel.setTableListener(new IsoTableMouseAdapter(this));
-		isoTablePanel.setRemoveSelectedListener(new IsoTablePopupMenuListener(this));
-	}
-
-	/**
-	 * Create and set the listeners for the components in BitmapPanell
-	 */
-	private void bitmapPanelListeners() {
-
-	}
-
-	/**
-	 * Create and set the listeners for the components in DataElementPanel
-	 */
-	private void dataElementPanelListeners() {
-		dataElementPanel.setAddDEButtonListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				int deNum = 0;
-				DataElement newDE = null;
-				String deValue = dataElementPanel.getDEValue();
-
-				try {
-					deNum = dataElementPanel.getDENum();
-					newDE = DEFactory.generateDataElement(deNum, deValue);
-				} catch (InvalidDataElementException
-						| MaximumLengthExceededException | PatternException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				} catch (NumberFormatException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							"DataElement missing", "ERROR",
-							JOptionPane.ERROR_MESSAGE);
-				}
-
-				try {
-					addDEtoIsoMessage(deNum, newDE);
-				} catch (MaximumLengthExceededException | PatternException
-						| ReservedDataElementException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				}
-
-				String newDeValue = isoMsg.getDataElement(deNum).getPlainValue();
-
-				dataElementPanel.resetInputFields();
-				dataElementPanel.setDEFields(String.format("%03d", deNum), newDeValue);
-
-			}
-
-		});
-
-		dataElementPanel.setAppendDEButtonListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				int deNum = 0;
-				String deValue = null;
-
-				try {
-					deNum = dataElementPanel.getDENum();
-					deValue = dataElementPanel.getDEValue();
-
-					appendValueToDE(deNum, deValue);
-					
-					
-					
-
-					
-				} catch (MaximumLengthExceededException | PatternException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-
-				} catch (NumberFormatException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							"DataElement missing", "ERROR",
-							JOptionPane.ERROR_MESSAGE);
-				}
-
-				String newDeValue = isoMsg.getDataElement(deNum).getPlainValue();
-
-				dataElementPanel.resetInputFields();
-				dataElementPanel.setDEFields(String.format("%03d", deNum), newDeValue);
-
-			}
-
-		});
-
-		dataElementPanel.setDeleteDEButtonListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				int deNum = 0;
-
-				try {
-					deNum = dataElementPanel.getDENum();
-					removeDE(deNum);
-				} catch (MaximumLengthExceededException | PatternException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException
-						| ReservedDataElementException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-				} catch (NumberFormatException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							"DataElement missing", "ERROR",
-							JOptionPane.ERROR_MESSAGE);
-				}
-
-			}
-
-		});
-
-	}
-
-	/**
-	 * Create and set the listeners for the components in ActionsPanel
-	 */
-	private void actionsPanelListeners() {
-		actionsPanel.setMcExampleButtonListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genMastercardExample();
-				} catch (InvalidMessageTypeException
-						| MaximumLengthExceededException | PatternException
-						| ReservedDataElementException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-
-		});
-
-		actionsPanel.setVisaExampleButtonListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					isoMsg = IsoMesageExamples.genVisaExample();
-				} catch (InvalidMessageTypeException
-						| MaximumLengthExceededException | PatternException
-						| ReservedDataElementException
-						| InvalidDataElementException
-						| FixedLengthNotHonoredException | ZeroLengthException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-
-				}
-
-				initIsoBuilderFrame();
-				updateBitmapPanel();
-				tableModel.fireTableDataChanged();
-			}
-
-		});
-
-		actionsPanel.setKoreButtonListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-
-					// showIsoMsg("IBM037");
-
-					String hexMessageString = isoMsg
-							.getIsoExtendedMessage("IBM037");
-
-					int effMessageLength = hexMessageString.length() / 2;
-
-					String effMessageLengthHex = Integer.toHexString(
-							effMessageLength).toUpperCase();
-					while (effMessageLengthHex.length() < 4) {
-						effMessageLengthHex = "0" + effMessageLengthHex;
-					}
-
-					String hexHeader = "00000000" + effMessageLengthHex
-							+ "0000";
-					new KoreFrame(hexHeader + hexMessageString);
-
-				} catch (UnsupportedEncodingException e) {
-					JOptionPane.showMessageDialog(isoBuilderFrame,
-							e.getMessage(), "ERROR", JOptionPane.ERROR_MESSAGE);
-
-				}
-
-			}
-
-		});
 	}
 
 	/**
@@ -736,7 +329,7 @@ public class IsoMessageController {
 	 * @param file
 	 * @throws IOException
 	 */
-	private void writeISoMsgToFile(File file) throws IOException {
+	protected void writeISoMsgToFile(File file) throws IOException {
 		FileOutputStream fos = new FileOutputStream(file);
 		ObjectOutputStream oos = new ObjectOutputStream(fos);
 
@@ -754,7 +347,7 @@ public class IsoMessageController {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	private IsoMessage readIsoMsgFromFile(File file) throws IOException,
+	protected IsoMessage readIsoMsgFromFile(File file) throws IOException,
 			ClassNotFoundException {
 		FileInputStream fis = new FileInputStream(file);
 		ObjectInputStream ois = new ObjectInputStream(fis);
@@ -773,7 +366,7 @@ public class IsoMessageController {
 	 * @param file
 	 * @return
 	 */
-	private String getExtension(File file) {
+	protected String getExtension(File file) {
 		String regex = ".*\\.(?<EXT>.*)";
 		Pattern pattern = Pattern.compile(regex);
 
@@ -867,5 +460,12 @@ public class IsoMessageController {
 		return isoBuilderFrame;
 	}
 
-	
+	public IsoMessage getIsoMsg() {
+		return isoMsg;
+	}
+
+	public void setIsoMsg(IsoMessage isoMsg) {
+		this.isoMsg = isoMsg;
+	}
+
 }
